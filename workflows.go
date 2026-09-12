@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unsafe"
 
 	"github.com/coalaura/semver"
 )
@@ -18,57 +17,82 @@ type Action struct {
 	End     int
 }
 
+type Change struct {
+	Name    string
+	Current semver.SemVer
+	Latest  semver.SemVer
+	Start   int
+	End     int
+}
+
 type Workflow struct {
 	Path    string
 	Data    []byte
 	Actions []Action
 }
 
-func (w *Workflow) Update(latest map[string]semver.SemVer) error {
-	update := make([]Action, 0, len(w.Actions))
+type WorkflowChanges struct {
+	Workflow *Workflow
+	Changes  []Change
+}
 
-	for _, action := range w.Actions {
-		version, ok := latest[action.Name]
+func (workflow *Workflow) Changes(latest map[string]semver.SemVer, full bool) []Change {
+	changes := make([]Change, 0, len(workflow.Actions))
+
+	for _, action := range workflow.Actions {
+		version, ok := latest[action.Parent]
 		if !ok {
 			continue
+		}
+
+		if !full {
+			version.SetMajorOnly()
 		}
 
 		if !version.HigherThan(action.Version) {
 			continue
 		}
 
-		update = append(update, action)
+		changes = append(changes, Change{
+			Name:    action.Name,
+			Current: action.Version,
+			Latest:  version,
+			Start:   action.Start,
+			End:     action.End,
+		})
 	}
 
-	if len(update) == 0 {
+	return changes
+}
+
+func (workflow *Workflow) Apply(changes []Change) error {
+	if len(changes) == 0 {
 		return nil
 	}
 
+	var additional int
+
+	for _, change := range changes {
+		additional += len(change.Latest.String()) - (change.End - change.Start)
+	}
+
 	var (
+		buffer bytes.Buffer
 		offset int
-		next   int
-		buf    bytes.Buffer
 	)
 
-	buf.Grow(len(w.Data))
+	buffer.Grow(len(workflow.Data) + additional)
 
-	for _, action := range update {
-		next = action.Start
+	for _, change := range changes {
+		buffer.Write(workflow.Data[offset:change.Start])
+		buffer.WriteString(change.Latest.String())
 
-		buf.Write(w.Data[offset:next])
-
-		version := latest[action.Name]
-
-		buf.WriteString(version.MajorString())
-
-		offset = action.End
+		offset = change.End
 	}
 
-	if offset < len(w.Data) {
-		buf.Write(w.Data[offset:])
-	}
+	buffer.Write(workflow.Data[offset:])
 
-	return os.WriteFile(w.Path, buf.Bytes(), 0644)
+	return os.WriteFile(workflow.Path, buffer.Bytes(), 0o644)
 }
 
 func ReadWorkflows() ([]Workflow, error) {
@@ -84,7 +108,7 @@ func ReadWorkflows() ([]Workflow, error) {
 	for _, entry := range entries {
 		name := entry.Name()
 
-		if entry.IsDir() || !isYamlFile(name) {
+		if entry.IsDir() || !isYAMLFile(name) {
 			continue
 		}
 
@@ -105,119 +129,124 @@ func ReadWorkflows() ([]Workflow, error) {
 	return workflows, nil
 }
 
-func isYamlFile(name string) bool {
-	idx := strings.LastIndex(name, ".")
-	if idx == -1 || len(name)-idx < 4 {
-		return false
-	}
+func isYAMLFile(name string) bool {
+	extension := filepath.Ext(name)
 
-	return name[idx:] == ".yaml" || name[idx:] == ".yml"
+	return strings.EqualFold(extension, ".yaml") || strings.EqualFold(extension, ".yml")
 }
 
 func findActions(data []byte) []Action {
-	var (
-		index  int
-		offset int
+	var actions []Action
 
-		actions []Action
-	)
+	for lineStart := 0; lineStart < len(data); {
+		lineLength := bytes.IndexByte(data[lineStart:], '\n')
+		lineEnd := len(data)
 
-	for {
-		offset = bytes.IndexByte(data[index:], '\n')
-		if offset == -1 {
-			break
+		if lineLength >= 0 {
+			lineEnd = lineStart + lineLength + 1
 		}
 
-		offset += index + 1
-
-		start, line := trimLeftSpace(data[index:offset])
-		if len(line) < 6 {
-			index = offset
-
-			continue
+		action, ok := findAction(data[lineStart:lineEnd], lineStart)
+		if ok {
+			actions = append(actions, action)
 		}
 
-		index += start
-
-		if line[0] == '-' {
-			start, line = trimLeftSpace(line[1:])
-
-			index += start + 1
-		}
-
-		if !bytes.HasPrefix(line, []byte("uses:")) {
-			index = offset
-
-			continue
-		}
-
-		start, line = trimLeftSpace(line[5:])
-
-		index += start + 5
-
-		if line[0] == '"' || line[0] == '\'' {
-			line = line[1:]
-
-			index++
-		}
-
-		var version []byte
-
-		at := bytes.IndexByte(line, '@')
-		if at == -1 {
-			line = bytes.TrimRight(line, " \t\r\n\"'")
-		} else {
-			version = bytes.TrimRight(line[at+1:], " \t\r\n\"'")
-
-			line = line[:at]
-
-			index += at + 1
-		}
-
-		if shouldSkipActionName(line) {
-			index = offset
-
-			continue
-		}
-
-		ver, err := semver.ParseSemVer(asString(version), true)
-		if err != nil {
-			continue
-		}
-
-		actions = append(actions, Action{
-			Name:    asString(line),
-			Parent:  getActionParent(line),
-			Version: ver,
-			Start:   index,
-			End:     index + len(version),
-		})
-
-		index = offset
+		lineStart = lineEnd
 	}
 
 	return actions
 }
 
-func trimLeftSpace(data []byte) (int, []byte) {
+func findAction(data []byte, base int) (Action, bool) {
+	var action Action
+
+	trimmed, leading := trimLeftSpace(data)
+	position := base + leading
+
+	if len(trimmed) == 0 {
+		return action, false
+	}
+
+	if trimmed[0] == '-' {
+		trimmed, leading = trimLeftSpace(trimmed[1:])
+		position += leading + 1
+	}
+
+	if !bytes.HasPrefix(trimmed, []byte("uses:")) {
+		return action, false
+	}
+
+	trimmed, leading = trimLeftSpace(trimmed[len("uses:"):])
+	position += leading + len("uses:")
+
+	if len(trimmed) == 0 {
+		return action, false
+	}
+
+	var quote byte
+
+	if trimmed[0] == '"' || trimmed[0] == '\'' {
+		quote = trimmed[0]
+		trimmed = trimmed[1:]
+
+		position++
+	}
+
+	at := bytes.IndexByte(trimmed, '@')
+	if at <= 0 {
+		return action, false
+	}
+
+	name := bytes.TrimRight(trimmed[:at], " \t")
+	version := trimmed[at+1:]
+
+	if quote != 0 {
+		end := bytes.IndexByte(version, quote)
+		if end >= 0 {
+			version = version[:end]
+		}
+	} else {
+		end := bytes.IndexAny(version, " \t\r\n#")
+		if end >= 0 {
+			version = version[:end]
+		}
+	}
+
+	if shouldSkipActionName(name) {
+		return action, false
+	}
+
+	parsed, err := semver.ParseSemVer(string(version), true)
+	if err != nil {
+		return action, false
+	}
+
+	return Action{
+		Name:    string(name),
+		Parent:  getActionParent(name),
+		Version: parsed,
+		Start:   position + at + 1,
+		End:     position + at + 1 + len(version),
+	}, true
+}
+
+func trimLeftSpace(data []byte) ([]byte, int) {
 	var index int
 
 	for index < len(data) {
 		switch data[index] {
 		case ' ', '\t', '\r', '\n':
 			index++
-
-			continue
+		default:
+			return data[index:], index
 		}
-
-		break
 	}
 
-	return index, data[index:]
+	return data[index:], index
 }
 
 func shouldSkipActionName(name []byte) bool {
-	if len(name) < 1 {
+	if len(name) == 0 {
 		return true
 	}
 
@@ -225,25 +254,15 @@ func shouldSkipActionName(name []byte) bool {
 }
 
 func getActionParent(name []byte) string {
-	slash := bytes.IndexByte(name, '/')
-	if slash == -1 {
-		return asString(name)
+	firstSlash := bytes.IndexByte(name, '/')
+	if firstSlash == -1 {
+		return string(name)
 	}
 
-	slash++
-
-	secondary := bytes.IndexByte(name[slash:], '/')
-	if secondary == -1 {
-		return asString(name)
+	secondSlash := bytes.IndexByte(name[firstSlash+1:], '/')
+	if secondSlash == -1 {
+		return string(name)
 	}
 
-	return asString(name[:slash+secondary])
-}
-
-func asString(b []byte) string {
-	if len(b) == 0 {
-		return ""
-	}
-
-	return unsafe.String(unsafe.SliceData(b), len(b))
+	return string(name[:firstSlash+1+secondSlash])
 }

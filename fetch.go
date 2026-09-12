@@ -12,83 +12,63 @@ import (
 	"github.com/coalaura/semver"
 )
 
-type Version struct {
-	Major string
-	Full  string
-}
+const fetchWorkers = 4
 
 var client = &http.Client{
 	Timeout: 5 * time.Second,
-	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	CheckRedirect: func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
 	},
 }
 
-func FetchLatestReleases(workflows []Workflow, full bool) (map[string]semver.SemVer, error) {
-	var (
-		wg      sync.WaitGroup
-		mx      sync.Mutex
-		actions = make(map[string]struct{})
-	)
+func FetchLatestReleases(ctx context.Context, workflows []Workflow) (map[string]semver.SemVer, error) {
+	repositories := actionRepositories(workflows)
 
-	for _, workflow := range workflows {
-		for _, action := range workflow.Actions {
-			name := action.Parent
+	results := make(map[string]semver.SemVer, len(repositories))
 
-			if _, ok := actions[name]; ok {
-				continue
-			}
-
-			actions[name] = struct{}{}
-		}
+	if len(repositories) == 0 {
+		return results, nil
 	}
 
-	if len(actions) == 0 {
-		return make(map[string]semver.SemVer), nil
-	}
-
-	ctx, cancel := context.WithCancelCause(context.Background())
+	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	jobs := make(chan string, len(actions))
-	results := make(map[string]semver.SemVer, len(actions))
+	jobs := make(chan string, len(repositories))
 
-	for range 4 {
-		wg.Go(func() {
-			for {
-				select {
-				case <-ctx.Done():
+	var (
+		waitGroup sync.WaitGroup
+		mutex     sync.Mutex
+	)
+
+	workerCount := min(fetchWorkers, len(repositories))
+
+	for range workerCount {
+		waitGroup.Go(func() {
+			for repository := range jobs {
+				if ctx.Err() != nil {
 					return
-				case job, ok := <-jobs:
-					if !ok {
-						return
-					}
-
-					latest, err := FetchLatestRelease(job)
-					if err != nil {
-						cancel(err)
-
-						return
-					}
-
-					if !full {
-						latest.SetMajorOnly()
-					}
-
-					mx.Lock()
-					results[job] = latest
-					mx.Unlock()
 				}
+
+				latest, err := FetchLatestRelease(ctx, repository)
+				if err != nil {
+					cancel(fmt.Errorf("%s: %w", repository, err))
+
+					return
+				}
+
+				mutex.Lock()
+				results[repository] = latest
+				mutex.Unlock()
 			}
 		})
 	}
 
-	for action := range actions {
-		jobs <- action
+	for repository := range repositories {
+		jobs <- repository
 	}
 
 	close(jobs)
-	wg.Wait()
+	waitGroup.Wait()
 
 	err := context.Cause(ctx)
 	if err != nil {
@@ -98,29 +78,54 @@ func FetchLatestReleases(workflows []Workflow, full bool) (map[string]semver.Sem
 	return results, nil
 }
 
-func FetchLatestRelease(name string) (semver.SemVer, error) {
+func FetchLatestRelease(ctx context.Context, name string) (semver.SemVer, error) {
 	url := fmt.Sprintf("https://github.com/%s/releases/latest", name)
 
-	resp, err := client.Head(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	if err != nil {
+		return semver.SemVer{}, fmt.Errorf("create request: %w", err)
+	}
+
+	response, err := client.Do(request)
 	if err != nil {
 		return semver.SemVer{}, err
 	}
 
-	resp.Body.Close()
-
-	if resp.StatusCode != 302 {
-		return semver.SemVer{}, errors.New(resp.Status)
+	err = response.Body.Close()
+	if err != nil {
+		return semver.SemVer{}, fmt.Errorf("close response: %w", err)
 	}
 
-	target := resp.Header.Get("Location")
+	if response.StatusCode < http.StatusMultipleChoices || response.StatusCode >= http.StatusBadRequest {
+		return semver.SemVer{}, errors.New(response.Status)
+	}
+
+	target := response.Header.Get("Location")
 	if target == "" {
 		return semver.SemVer{}, errors.New("no location header")
 	}
 
 	slash := strings.LastIndexByte(target, '/')
-	if slash == -1 {
+	if slash == -1 || slash == len(target)-1 {
 		return semver.SemVer{}, fmt.Errorf("invalid location header: %q", target)
 	}
 
-	return semver.ParseSemVer(target[slash+1:], true)
+	version, err := semver.ParseSemVer(target[slash+1:], true)
+	if err != nil {
+		return semver.SemVer{}, fmt.Errorf("parse release version: %w", err)
+	}
+
+	return version, nil
+}
+
+func actionRepositories(workflows []Workflow) map[string]struct{} {
+	repositories := make(map[string]struct{})
+
+	for _, workflow := range workflows {
+		for _, action := range workflow.Actions {
+			repositories[action.Parent] = struct{}{}
+		}
+	}
+
+	return repositories
 }
