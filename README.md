@@ -1,4 +1,8 @@
-# actup
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/banner.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/banner-light.svg">
+  <img alt="actup — check and update GitHub Actions versions" src=".github/banner-light.svg">
+</picture>
 
 `actup` checks the GitHub Actions used in a repository and updates their version references.
 

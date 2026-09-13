@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="280" viewBox="0 0 1120 280" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">actup — GitHub Actions, up to date</title>
+  <desc id="description">A workflow shows action versions stepping forward. Read workflows, check releases, and apply updates when ready.</desc>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+    .ink { fill: #e6edf3; }
+    .muted { fill: #9caebb; }
+    .cyan { fill: #67d9ee; }
+    .green { fill: #77dfb5; }
+    .rule { stroke: #364953; }
+    .arrow { stroke: #77dfb5; stroke-width: 1.5; }
+    .tag { fill: #122e29; stroke: #3c8069; }
+    .label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; }
+  </style>
+
+  <!-- Project identity and a preview-first command prompt. -->
+  <g transform="translate(48 0)">
+    <path d="M0 41H24" stroke="#67d9ee" stroke-width="2"/>
+    <text x="34" y="45" class="muted label">GITHUB ACTIONS / VERSION UPDATES</text>
+    <text x="-3" y="124" class="ink" font-size="76" font-weight="700" letter-spacing="-3">actup</text>
+    <path d="M225 115H240V100H255V80M247 88L255 80L263 88" stroke="#67d9ee" stroke-width="2"/>
+    <text x="0" y="162" class="muted" font-size="18">Fresh action versions.</text>
+    <text x="0" y="188" class="muted" font-size="18">Same familiar workflows.</text>
+    <text x="0" y="225" class="mono" font-size="15"><tspan class="green">$</tspan><tspan class="ink"> actup</tspan></text>
+    <text x="0" y="247" class="muted" font-size="12">Preview first · apply when ready</text>
+  </g>
+
+  <!-- Illustrative version changes, rather than a claim about latest releases. -->
+  <g transform="translate(454 38)">
+    <rect x="0.5" y="0.5" width="617" height="170" rx="2" class="rule"/>
+    <path d="M1 40.5H617" class="rule"/>
+    <path d="M20 14H29L34 19V28H20ZM29 14V19H34" stroke="#67d9ee" stroke-width="1.5" stroke-linejoin="round"/>
+    <text x="46" y="26" class="mono muted" font-size="12">.github/workflows/ci.yml</text>
+    <text x="598" y="25" text-anchor="end" class="cyan label">VERSION DIFF</text>
+
+    <g class="mono" font-size="15">
+      <text x="20" y="79" class="muted" font-size="11">01</text>
+      <text x="54" y="80"><tspan class="cyan">uses:</tspan><tspan class="ink"> actions/checkout</tspan></text>
+      <text x="370" y="80" class="muted">@v4</text>
+      <path d="M419 75H461M455 69L461 75L455 81" class="arrow"/>
+      <rect x="480" y="59" width="58" height="30" rx="2" class="tag"/>
+      <text x="509" y="80" text-anchor="middle" class="green">@v5</text>
+      <path d="M565 75L570 80L581 69" class="arrow"/>
+
+      <text x="20" y="124" class="muted" font-size="11">02</text>
+      <text x="54" y="125"><tspan class="cyan">uses:</tspan><tspan class="ink"> actions/setup-go</tspan></text>
+      <text x="370" y="125" class="muted">@v5</text>
+      <path d="M419 120H461M455 114L461 120L455 126" class="arrow"/>
+      <rect x="480" y="104" width="58" height="30" rx="2" class="tag"/>
+      <text x="509" y="125" text-anchor="middle" class="green">@v6</text>
+      <path d="M565 120L570 125L581 114" class="arrow"/>
+    </g>
+
+    <text x="20" y="155" class="muted mono" font-size="10">major by default</text>
+    <text x="598" y="155" text-anchor="end" class="muted mono" font-size="10">--full includes minor + patch</text>
+  </g>
+
+  <!-- The three steps mirror the tool's workflow. -->
+  <g transform="translate(454 241)">
+    <path d="M0 0H618" class="rule"/>
+    <rect x="0" y="-4" width="8" height="8" fill="#67d9ee"/>
+    <rect x="209" y="-4" width="8" height="8" fill="#67d9ee"/>
+    <rect x="420" y="-4" width="8" height="8" fill="#77dfb5"/>
+    <path d="M612 -4L618 0L612 4" class="rule"/>
+    <text x="0" y="22" class="muted label">01 / READ WORKFLOWS</text>
+    <text x="209" y="22" class="muted label">02 / CHECK RELEASES</text>
+    <text x="420" y="22" class="green label">03 / APPLY WITH --apply</text>
+  </g>
+</svg>
