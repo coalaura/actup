@@ -1,70 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="280" viewBox="0 0 1120 280" fill="none" role="img" aria-labelledby="title description">
-  <title id="title">actup — GitHub Actions, up to date</title>
-  <desc id="description">A workflow shows action versions stepping forward. Read workflows, check releases, and apply updates when ready.</desc>
-  <style>
-    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
-    .ink { fill: #182f3b; }
-    .muted { fill: #526775; }
-    .cyan { fill: #087b91; }
-    .green { fill: #167251; }
-    .rule { stroke: #bdcdd3; }
-    .arrow { stroke: #167251; stroke-width: 1.5; }
-    .tag { fill: #eaf6f0; stroke: #7eaf98; }
-    .label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; }
-  </style>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">actup</title>
+  <desc id="description">GitHub Actions version updates. A release tag travels from v4 to v5 along a rising workflow line beneath a custom actup wordmark. The raised u ends in an upward arrow.</desc>
 
-  <!-- Project identity and a preview-first command prompt. -->
-  <g transform="translate(48 0)">
-    <path d="M0 41H24" stroke="#087b91" stroke-width="2"/>
-    <text x="34" y="45" class="muted label">GITHUB ACTIONS / VERSION UPDATES</text>
-    <text x="-3" y="124" class="ink" font-size="76" font-weight="700" letter-spacing="-3">actup</text>
-    <path d="M225 115H240V100H255V80M247 88L255 80L263 88" stroke="#087b91" stroke-width="2"/>
-    <text x="0" y="162" class="muted" font-size="18">Fresh action versions.</text>
-    <text x="0" y="188" class="muted" font-size="18">Same familiar workflows.</text>
-    <text x="0" y="225" class="mono" font-size="15"><tspan class="green">$</tspan><tspan class="ink"> actup</tspan></text>
-    <text x="0" y="247" class="muted" font-size="12">Preview first · apply when ready</text>
-  </g>
-
-  <!-- Illustrative version changes, rather than a claim about latest releases. -->
-  <g transform="translate(454 38)">
-    <rect x="0.5" y="0.5" width="617" height="170" rx="2" class="rule"/>
-    <path d="M1 40.5H617" class="rule"/>
-    <path d="M20 14H29L34 19V28H20ZM29 14V19H34" stroke="#087b91" stroke-width="1.5" stroke-linejoin="round"/>
-    <text x="46" y="26" class="mono muted" font-size="12">.github/workflows/ci.yml</text>
-    <text x="598" y="25" text-anchor="end" class="cyan label">VERSION DIFF</text>
-
-    <g class="mono" font-size="15">
-      <text x="20" y="79" class="muted" font-size="11">01</text>
-      <text x="54" y="80"><tspan class="cyan">uses:</tspan><tspan class="ink"> actions/checkout</tspan></text>
-      <text x="370" y="80" class="muted">@v4</text>
-      <path d="M419 75H461M455 69L461 75L455 81" class="arrow"/>
-      <rect x="480" y="59" width="58" height="30" rx="2" class="tag"/>
-      <text x="509" y="80" text-anchor="middle" class="green">@v5</text>
-      <path d="M565 75L570 80L581 69" class="arrow"/>
-
-      <text x="20" y="124" class="muted" font-size="11">02</text>
-      <text x="54" y="125"><tspan class="cyan">uses:</tspan><tspan class="ink"> actions/setup-go</tspan></text>
-      <text x="370" y="125" class="muted">@v5</text>
-      <path d="M419 120H461M455 114L461 120L455 126" class="arrow"/>
-      <rect x="480" y="104" width="58" height="30" rx="2" class="tag"/>
-      <text x="509" y="125" text-anchor="middle" class="green">@v6</text>
-      <path d="M565 120L570 125L581 114" class="arrow"/>
+  <defs>
+    <!-- Hand-drawn letter outlines keep the wordmark independent of fonts. -->
+    <g id="act" fill-rule="evenodd">
+      <path d="M344 111C309 111 286 136 286 171C286 207 309 231 343 231C360 231 373 224 382 213V228H408V114H382V129C373 117 360 111 344 111ZM348 135C369 135 383 150 383 171C383 193 369 207 348 207C326 207 312 192 312 171C312 151 326 135 348 135Z"/>
+      <path d="M488 111C450 111 425 136 425 171C425 207 450 231 488 231C510 231 525 222 536 209L518 193C510 202 501 207 489 207C467 207 451 192 451 171C451 150 467 135 489 135C501 135 510 140 518 149L536 132C524 118 509 111 488 111Z"/>
+      <path d="M564 82H590V114H628V137H590V191C590 202 596 208 608 208C615 208 621 206 628 203V226C619 230 610 232 601 232C577 232 564 219 564 194V137H544V114H564Z"/>
+    </g>
+    <g id="up" fill-rule="evenodd">
+      <path d="M652 70H678V140C678 156 686 165 702 165C718 165 728 154 728 138V74H714L741 39L769 74H754V187H729V172C721 183 709 190 694 190C668 190 652 174 652 145Z"/>
+      <path d="M784 70H810V85C820 73 833 67 850 67C884 67 908 92 908 128C908 164 884 189 850 189C833 189 820 182 810 170V235H784ZM845 91C824 91 809 106 809 128C809 150 824 165 845 165C867 165 882 150 882 128C882 106 867 91 845 91Z"/>
     </g>
 
-    <text x="20" y="155" class="muted mono" font-size="10">major by default</text>
-    <text x="598" y="155" text-anchor="end" class="muted mono" font-size="10">--full includes minor + patch</text>
+    <!-- A punched release tag; mirroring the body reverses its direction. -->
+    <path id="release-tag" fill-rule="evenodd" d="M2 0H110L148 38L110 76H2Q0 76 0 74V2Q0 0 2 0ZM134 38A6 6 0 1 0 122 38A6 6 0 1 0 134 38Z"/>
+    <path id="version-prefix" d="M0 0L10 28L20 0"/>
+    <path id="version-four" d="M20 29V0L0 20H27"/>
+    <path id="version-five" d="M24 0H3L1 13H14C30 13 29 29 14 29H0"/>
+
+    <!-- The workflow passes behind the letters, with a transparent clearance. -->
+    <mask id="workflow-clearance" maskUnits="userSpaceOnUse" x="0" y="0" width="1200" height="360">
+      <path fill="#fff" d="M0 0H1200V360H0Z"/>
+      <g fill="#000" stroke="#000" stroke-width="16" stroke-linejoin="round">
+        <use href="#act"/>
+        <use href="#up"/>
+      </g>
+    </mask>
+  </defs>
+
+  <!-- One continuous route lifts the version reference through the wordmark. -->
+  <path d="M204 215V248C204 263 216 275 232 275H548C574 275 588 269 607 250L627 230C647 210 665 207 687 207H972C992 207 1002 191 1002 171V115"
+        stroke="#9c8ca7" stroke-width="5" mask="url(#workflow-clearance)"/>
+
+  <g aria-hidden="true">
+    <use href="#act" fill="#302a3d"/>
+    <use href="#up" fill="#48752c"/>
   </g>
 
-  <!-- The three steps mirror the tool's workflow. -->
-  <g transform="translate(454 241)">
-    <path d="M0 0H618" class="rule"/>
-    <rect x="0" y="-4" width="8" height="8" fill="#087b91"/>
-    <rect x="209" y="-4" width="8" height="8" fill="#087b91"/>
-    <rect x="420" y="-4" width="8" height="8" fill="#167251"/>
-    <path d="M612 -4L618 0L612 4" class="rule"/>
-    <text x="0" y="22" class="muted label">01 / READ WORKFLOWS</text>
-    <text x="209" y="22" class="muted label">02 / CHECK RELEASES</text>
-    <text x="420" y="22" class="green label">03 / APPLY WITH --apply</text>
+  <!-- The old reference hangs back; the updated one is lifted and level. -->
+  <g transform="translate(76 177) rotate(10 128 38)">
+    <use href="#release-tag" fill="#f4edf2" stroke="#947b8d" stroke-width="2"/>
+    <g stroke="#7b5d73" stroke-width="5" stroke-linecap="square" stroke-linejoin="round">
+      <use href="#version-prefix" transform="translate(20 23)"/>
+      <use href="#version-four" transform="translate(54 23)"/>
+    </g>
   </g>
+  <g transform="translate(982 77)">
+    <use href="#release-tag" transform="translate(148 0) scale(-1 1)" fill="#48752c"/>
+    <g stroke="#f7fbed" stroke-width="5" stroke-linecap="square" stroke-linejoin="round">
+      <use href="#version-prefix" transform="translate(51 23)"/>
+      <use href="#version-five" transform="translate(85 23)"/>
+    </g>
+  </g>
+
+  <text x="600" y="330" fill="#696174" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="25" text-anchor="middle">GitHub Actions version updates</text>
 </svg>
