@@ -4,18 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 
+	"github.com/coalaura/plain/minimal"
 	"github.com/urfave/cli/v3"
-)
-
-const (
-	colorCyan  = "\x1b[36m"
-	colorGreen = "\x1b[32m"
-	colorRed   = "\x1b[31m"
-	colorGray  = "\x1b[90m"
-	colorReset = "\x1b[0m"
 )
 
 type Options struct {
@@ -24,6 +16,8 @@ type Options struct {
 }
 
 var Version = "dev"
+
+var log = minimal.New()
 
 func main() {
 	err := NewCLI().Run(context.Background(), os.Args)
@@ -34,13 +28,13 @@ func main() {
 	status, ok := errors.AsType[cli.ExitCoder](err)
 	if ok {
 		if status.Error() != "" {
-			writeError(os.Stderr, status.Error())
+			_ = log.Errorln(status.Error())
 		}
 
 		os.Exit(status.ExitCode())
 	}
 
-	writeError(os.Stderr, err.Error())
+	_ = log.Errorln(err.Error())
 
 	os.Exit(1)
 }
@@ -72,13 +66,13 @@ func NewCLI() *cli.Command {
 				return fmt.Errorf("unexpected argument: %s", cmd.Args().First())
 			}
 
-			return Run(ctx, cmd.Writer, options)
+			return Run(ctx, options)
 		},
 	}
 }
 
-func Run(ctx context.Context, writer io.Writer, options Options) error {
-	err := writeInfo(writer, "checking workflow actions")
+func Run(ctx context.Context, options Options) error {
+	err := log.Infoln("checking workflow actions")
 	if err != nil {
 		return err
 	}
@@ -113,7 +107,7 @@ func Run(ctx context.Context, writer io.Writer, options Options) error {
 	}
 
 	if changeCount == 0 {
-		return writeSuccess(writer, "all actions are up to date")
+		return log.Successln("all actions are up to date")
 	}
 
 	for _, workflowChanges := range changedWorkflows {
@@ -124,16 +118,15 @@ func Run(ctx context.Context, writer io.Writer, options Options) error {
 			}
 		}
 
-		err = writeChanges(writer, workflowChanges)
+		err = writeChanges(workflowChanges)
 		if err != nil {
 			return err
 		}
 	}
 
 	if options.Apply {
-		return writeSuccess(
-			writer,
-			"updated %d %s in %d %s",
+		return log.Successf(
+			"updated %d %s in %d %s\n",
 			changeCount,
 			plural(changeCount, "action", "actions"),
 			len(changedWorkflows),
@@ -141,48 +134,17 @@ func Run(ctx context.Context, writer io.Writer, options Options) error {
 		)
 	}
 
-	return writeInfo(writer, "%d %s available; run with --apply to update", changeCount, plural(changeCount, "update", "updates"))
+	return log.Infof("%d %s available; run with --apply to update\n", changeCount, plural(changeCount, "update", "updates"))
 }
 
-func writeInfo(writer io.Writer, format string, args ...any) error {
-	_, err := fmt.Fprintf(writer, colorCyan+"::"+colorReset+" "+format+"\n", args...)
-	if err != nil {
-		return fmt.Errorf("write output: %w", err)
-	}
-
-	return nil
-}
-
-func writeSuccess(writer io.Writer, format string, args ...any) error {
-	_, err := fmt.Fprintf(writer, colorGreen+"::"+colorReset+" "+format+"\n", args...)
-	if err != nil {
-		return fmt.Errorf("write output: %w", err)
-	}
-
-	return nil
-}
-
-func writeError(writer io.Writer, message string) {
-	fmt.Fprintf(writer, colorRed+"!!"+colorReset+" %s\n", message)
-}
-
-func writeChanges(writer io.Writer, workflowChanges WorkflowChanges) error {
-	_, err := fmt.Fprintf(writer, " %s%s%s\n", colorCyan, workflowChanges.Workflow.Path, colorReset)
+func writeChanges(workflowChanges WorkflowChanges) error {
+	err := log.Writeln(minimal.AnsiInfo, " "+workflowChanges.Workflow.Path)
 	if err != nil {
 		return fmt.Errorf("write workflow: %w", err)
 	}
 
 	for _, change := range workflowChanges.Changes {
-		_, err = fmt.Fprintf(
-			writer,
-			"   %s-> %s %s -> %s%s\n",
-			colorGray,
-			change.Name,
-			change.Current,
-			change.Latest,
-			colorReset,
-		)
-
+		err = log.Subf("%s %s -> %s\n", change.Name, change.Current, change.Latest)
 		if err != nil {
 			return fmt.Errorf("write action update: %w", err)
 		}
