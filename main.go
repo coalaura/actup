@@ -142,7 +142,7 @@ func Run(ctx context.Context, options Options) error {
 }
 
 func writeWorkflow(workflow *Workflow, changes []Change, applied bool) error {
-	err := log.Writeln(minimal.AnsiInfo, " "+workflow.Path)
+	err := log.Stepln(workflow.Path)
 	if err != nil {
 		return fmt.Errorf("write workflow: %w", err)
 	}
@@ -153,7 +153,7 @@ func writeWorkflow(workflow *Workflow, changes []Change, applied bool) error {
 		action := &workflow.Actions[actionIndex]
 
 		if changeIndex >= len(changes) || changes[changeIndex].Start != action.Start {
-			err = log.Writef(minimal.AnsiSub, "   %s@%s\n", action.Name, action.Version)
+			err = log.Subf("%s@%s\n", action.Name, action.Version)
 			if err != nil {
 				return fmt.Errorf("write action: %w", err)
 			}
@@ -162,6 +162,7 @@ func writeWorkflow(workflow *Workflow, changes []Change, applied bool) error {
 		}
 
 		change := &changes[changeIndex]
+
 		changeIndex++
 
 		color := minimal.AnsiInfo
@@ -170,7 +171,7 @@ func writeWorkflow(workflow *Workflow, changes []Change, applied bool) error {
 			color = minimal.AnsiSuccess
 		}
 
-		err = log.Writef(color, "   %s@%s -> %s\n", action.Name, action.Version, change.Latest)
+		err = log.Subf("%s%s@%s -> %s\n", color, action.Name, action.Version, change.Latest)
 		if err != nil {
 			return fmt.Errorf("write action update: %w", err)
 		}

@@ -1,5 +1,5 @@
-github.com/coalaura/plain v1.6.1 h1:PkSIx5cSFtrQaQ+634GQ4hqPJb9OxoSIff707EoXhvA=
-github.com/coalaura/plain v1.6.1/go.mod h1:8RE9XMZjc0DdRt1/coC8bzwSPEeMWMi0fASj6X1pXx8=
+github.com/coalaura/plain v1.6.2 h1:p4qFLJkODzYT3niEfRGrlpkyjaTouuczdK3b5KoGmMs=
+github.com/coalaura/plain v1.6.2/go.mod h1:8RE9XMZjc0DdRt1/coC8bzwSPEeMWMi0fASj6X1pXx8=
 github.com/coalaura/semver v1.0.2 h1:E76rdG7ozKN6RkTGk8qWWe6vVZiTPn2qQKiEsJLNzwc=
 github.com/coalaura/semver v1.0.2/go.mod h1:1LrfpJhpLnB081BVBkE/1sGkpQSrdA6N1TcvxujtsOM=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
