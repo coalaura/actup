@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,22 +19,15 @@ type Action struct {
 }
 
 type Change struct {
-	Name    string
-	Current semver.SemVer
-	Latest  semver.SemVer
-	Start   int
-	End     int
+	Latest semver.SemVer
+	Start  int
+	End    int
 }
 
 type Workflow struct {
 	Path    string
 	Data    []byte
 	Actions []Action
-}
-
-type WorkflowChanges struct {
-	Workflow *Workflow
-	Changes  []Change
 }
 
 func (workflow *Workflow) Changes(latest map[string]semver.SemVer, full bool) []Change {
@@ -54,11 +48,9 @@ func (workflow *Workflow) Changes(latest map[string]semver.SemVer, full bool) []
 		}
 
 		changes = append(changes, Change{
-			Name:    action.Name,
-			Current: action.Version,
-			Latest:  version,
-			Start:   action.Start,
-			End:     action.End,
+			Latest: version,
+			Start:  action.Start,
+			End:    action.End,
 		})
 	}
 
@@ -95,7 +87,20 @@ func (workflow *Workflow) Apply(changes []Change) error {
 	return os.WriteFile(workflow.Path, buffer.Bytes(), 0o644)
 }
 
-func ReadWorkflows() ([]Workflow, error) {
+func ReadWorkflows(file string) ([]Workflow, error) {
+	if file != "" {
+		if !isYAMLFile(file) {
+			return nil, fmt.Errorf("%s: not a YAML workflow file", file)
+		}
+
+		workflow, err := readWorkflow(file)
+		if err != nil {
+			return nil, err
+		}
+
+		return []Workflow{workflow}, nil
+	}
+
 	directory := filepath.Join(".github", "workflows")
 
 	entries, err := os.ReadDir(directory)
@@ -112,21 +117,28 @@ func ReadWorkflows() ([]Workflow, error) {
 			continue
 		}
 
-		path := filepath.Join(directory, name)
-
-		data, err := os.ReadFile(path)
+		workflow, err := readWorkflow(filepath.Join(directory, name))
 		if err != nil {
 			return nil, err
 		}
 
-		workflows = append(workflows, Workflow{
-			Path:    path,
-			Data:    data,
-			Actions: findActions(data),
-		})
+		workflows = append(workflows, workflow)
 	}
 
 	return workflows, nil
+}
+
+func readWorkflow(path string) (Workflow, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Workflow{}, err
+	}
+
+	return Workflow{
+		Path:    path,
+		Data:    data,
+		Actions: findActions(data),
+	}, nil
 }
 
 func isYAMLFile(name string) bool {

@@ -13,6 +13,7 @@ import (
 type Options struct {
 	Apply bool
 	Full  bool
+	File  string
 }
 
 var Version = "dev"
@@ -60,6 +61,12 @@ func NewCLI() *cli.Command {
 				Usage:       "include minor and patch version updates",
 				Destination: &options.Full,
 			},
+			&cli.StringFlag{
+				Name:        "file",
+				Aliases:     []string{"f"},
+				Usage:       "check a specific workflow file instead of .github/workflows",
+				Destination: &options.File,
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			if cmd.Args().Len() != 0 {
@@ -77,7 +84,7 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 
-	workflows, err := ReadWorkflows()
+	workflows, err := ReadWorkflows(options.File)
 	if err != nil {
 		return fmt.Errorf("read workflows: %w", err)
 	}
@@ -87,41 +94,38 @@ func Run(ctx context.Context, options Options) error {
 		return fmt.Errorf("fetch latest releases: %w", err)
 	}
 
-	changedWorkflows := make([]WorkflowChanges, 0, len(workflows))
-	changeCount := 0
+	var (
+		changeCount          int
+		changedWorkflowCount int
+	)
 
 	for workflowIndex := range workflows {
 		workflow := &workflows[workflowIndex]
 
 		changes := workflow.Changes(latest, options.Full)
+
+		if options.Apply && len(changes) > 0 {
+			err = workflow.Apply(changes)
+			if err != nil {
+				return fmt.Errorf("update %s: %w", workflow.Path, err)
+			}
+		}
+
+		err = writeWorkflow(workflow, changes, options.Apply)
+		if err != nil {
+			return err
+		}
+
 		if len(changes) == 0 {
 			continue
 		}
 
-		changedWorkflows = append(changedWorkflows, WorkflowChanges{
-			Workflow: workflow,
-			Changes:  changes,
-		})
-
 		changeCount += len(changes)
+		changedWorkflowCount++
 	}
 
 	if changeCount == 0 {
 		return log.Successln("all actions are up to date")
-	}
-
-	for _, workflowChanges := range changedWorkflows {
-		if options.Apply {
-			err = workflowChanges.Workflow.Apply(workflowChanges.Changes)
-			if err != nil {
-				return fmt.Errorf("update %s: %w", workflowChanges.Workflow.Path, err)
-			}
-		}
-
-		err = writeChanges(workflowChanges)
-		if err != nil {
-			return err
-		}
 	}
 
 	if options.Apply {
@@ -129,22 +133,44 @@ func Run(ctx context.Context, options Options) error {
 			"updated %d %s in %d %s\n",
 			changeCount,
 			plural(changeCount, "action", "actions"),
-			len(changedWorkflows),
-			plural(len(changedWorkflows), "workflow", "workflows"),
+			changedWorkflowCount,
+			plural(changedWorkflowCount, "workflow", "workflows"),
 		)
 	}
 
 	return log.Infof("%d %s available; run with --apply to update\n", changeCount, plural(changeCount, "update", "updates"))
 }
 
-func writeChanges(workflowChanges WorkflowChanges) error {
-	err := log.Writeln(minimal.AnsiInfo, " "+workflowChanges.Workflow.Path)
+func writeWorkflow(workflow *Workflow, changes []Change, applied bool) error {
+	err := log.Writeln(minimal.AnsiInfo, " "+workflow.Path)
 	if err != nil {
 		return fmt.Errorf("write workflow: %w", err)
 	}
 
-	for _, change := range workflowChanges.Changes {
-		err = log.Subf("%s %s -> %s\n", change.Name, change.Current, change.Latest)
+	var changeIndex int
+
+	for actionIndex := range workflow.Actions {
+		action := &workflow.Actions[actionIndex]
+
+		if changeIndex >= len(changes) || changes[changeIndex].Start != action.Start {
+			err = log.Writef(minimal.AnsiSub, "   %s@%s\n", action.Name, action.Version)
+			if err != nil {
+				return fmt.Errorf("write action: %w", err)
+			}
+
+			continue
+		}
+
+		change := &changes[changeIndex]
+		changeIndex++
+
+		color := minimal.AnsiInfo
+
+		if applied {
+			color = minimal.AnsiSuccess
+		}
+
+		err = log.Writef(color, "   %s@%s -> %s\n", action.Name, action.Version, change.Latest)
 		if err != nil {
 			return fmt.Errorf("write action update: %w", err)
 		}

@@ -29,14 +29,18 @@ actup --full
 
 # Apply all available updates.
 actup --full --apply
+
+# Check a single workflow file instead of .github/workflows.
+actup --file .github/workflows/release.yml
 ```
 
 Use `actup --help` to view all command options.
 
 ## Behavior
 
-- Workflow files are read from `.github/workflows`.
+- Workflow files are read from `.github/workflows` or from the single file given with `--file`.
 - Both `.yml` and `.yaml` files are supported.
+- Every file read and action found is listed; actions with an update are highlighted.
 - Versions are resolved from each action's latest GitHub release.
 - The default mode updates references to major tags such as `v4`.
 - `--full` uses the complete release version, such as `v4.2.1`.
